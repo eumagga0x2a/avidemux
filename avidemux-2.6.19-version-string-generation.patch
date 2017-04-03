@@ -1,0 +1,220 @@
+commit 706f1c9c11cbf77593f6ae19b3763855a0b67e44
+Author: eumagga0x2a <eumagga0x2a@users.noreply.github.com>
+Date:   Wed Mar 29 10:22:39 2017 +0200
+
+    [main] Fix version string generation
+---
+ avidemux/common/main.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/avidemux/common/main.cpp b/avidemux/common/main.cpp
+index 3b5b44b..99bc8be 100755
+--- a/avidemux/common/main.cpp
++++ b/avidemux/common/main.cpp
+@@ -177,7 +177,8 @@ static bool admDummyHwCleanup()
+ int startAvidemux(int argc, char *argv[])
+ {
+ 
+-#define MKSTRING(x) #x
++#define STR(x) #x
++#define MKSTRING(x) STR(x)
+     printf("*************************\n");
+     printf("  Avidemux v%s", MKSTRING(ADM_VERSION));
+ 
+commit a17cf88b53a248a50d93831aab92206aad177c9b
+Author: eumagga0x2a <eumagga0x2a@users.noreply.github.com>
+Date:   Thu Mar 30 13:22:15 2017 +0200
+
+    [cmake/qt/cli] Unset ADM_SUBVERSION for releases, fix version string generation for jobs
+---
+ avidemux/cli/CMakeLists.txt                               |  4 +++-
+ avidemux/qt4/ADM_jobs/src/ADM_jobs.cpp                    |  7 ++++---
+ avidemux/qt4/ADM_jobs/src/CMakeLists.txt                  |  5 ++++-
+ avidemux/qt4/ADM_userInterfaces/ADM_dialog/CMakeLists.txt |  5 ++++-
+ avidemux/qt4/ADM_userInterfaces/ADM_dialog/Q_about.cpp    | 11 +++--------
+ avidemux/qt4/CMakeLists.txt                               |  4 +++-
+ cmake/admCPackRpm.cmake                                   |  6 +++++-
+ cmake/admMainChecks.cmake                                 |  2 +-
+ 8 files changed, 27 insertions(+), 17 deletions(-)
+
+diff --git a/avidemux/cli/CMakeLists.txt b/avidemux/cli/CMakeLists.txt
+index ad9c9b7..4f62c85 100644
+--- a/avidemux/cli/CMakeLists.txt
++++ b/avidemux/cli/CMakeLists.txt
+@@ -62,7 +62,9 @@ ADD_SUBDIRECTORY(ADM_UIs ./ADM_UIsCli)
+ ADD_SUBDIRECTORY(ADM_userInterfaces ./ADM_userInterfacesCli)
+ 
+ SDLify(../common/main.cpp)
+-ADD_SOURCE_CFLAGS(../common/main.cpp "-DADM_SUBVERSION=\"${ADM_SUBVERSION}\"")
++if (ADM_SUBVERSION)
++        ADD_SOURCE_CFLAGS(../common/main.cpp "-DADM_SUBVERSION=\"${ADM_SUBVERSION}\"")
++endif (ADM_SUBVERSION)
+ ADD_SOURCE_CFLAGS(../common/main.cpp "-DADM_VERSION='\"${AVIDEMUX_VERSION}\"'")
+ 
+ ###########################################
+diff --git a/avidemux/qt4/ADM_jobs/src/ADM_jobs.cpp b/avidemux/qt4/ADM_jobs/src/ADM_jobs.cpp
+index 3ad51af..85cec5f 100644
+--- a/avidemux/qt4/ADM_jobs/src/ADM_jobs.cpp
++++ b/avidemux/qt4/ADM_jobs/src/ADM_jobs.cpp
+@@ -46,11 +46,12 @@ int main(int argc, char *argv[])
+ 
+     installSigHandler();
+ 
+-    
++#define STR(x) #x
++#define MKSTRING(x) STR(x)
++
+     printf("*************************\n");
+-    printf("  Avidemux v" VERSION);
++    printf("  Avidemux v%s", MKSTRING(ADM_VERSION));
+ #if defined(ADM_SUBVERSION)
+-#define MKSTRING(x) #x
+      printf(" (%s)", MKSTRING(ADM_SUBVERSION));
+ #endif
+     printf("\n*************************\n");
+diff --git a/avidemux/qt4/ADM_jobs/src/CMakeLists.txt b/avidemux/qt4/ADM_jobs/src/CMakeLists.txt
+index 6d4fddf..77afc92 100644
+--- a/avidemux/qt4/ADM_jobs/src/CMakeLists.txt
++++ b/avidemux/qt4/ADM_jobs/src/CMakeLists.txt
+@@ -45,7 +45,10 @@ endif (WIN32)
+ include(admCoreIncludes)
+ include_directories("${PTHREAD_INCLUDE_DIR}")
+ ADD_EXECUTABLE(avidemux3_jobs_${QT_EXTENSION} ${ADM_JOB_SRCS})
+-ADD_SOURCE_CFLAGS(ADM_jobs.cpp "-DADM_SUBVERSION=\"${ADM_SUBVERSION}\"")
++ADD_SOURCE_CFLAGS(ADM_jobs.cpp "-DADM_VERSION=\"${AVIDEMUX_VERSION}\"")
++if (ADM_SUBVERSION)
++        ADD_SOURCE_CFLAGS(ADM_jobs.cpp "-DADM_SUBVERSION=\"${ADM_SUBVERSION}\"")
++endif (ADM_SUBVERSION)
+ 
+ ###########################################
+ TARGET_LINK_LIBRARIES(avidemux3_jobs_${QT_EXTENSION} ADM_coreSocket6)
+diff --git a/avidemux/qt4/ADM_userInterfaces/ADM_dialog/CMakeLists.txt b/avidemux/qt4/ADM_userInterfaces/ADM_dialog/CMakeLists.txt
+index 080bcc1..d99d0dd 100644
+--- a/avidemux/qt4/ADM_userInterfaces/ADM_dialog/CMakeLists.txt
++++ b/avidemux/qt4/ADM_userInterfaces/ADM_dialog/CMakeLists.txt
+@@ -40,7 +40,10 @@ SET(${ADM_LIB}_SRCS ${${ADM_LIB}_SRCS}
+         Q_audioTracks.cpp
+ )
+ 
+-ADD_DEFINITIONS(-DADM_SUBVERSION=\"${ADM_SUBVERSION}\" -DADM_VERSION=\"${AVIDEMUX_VERSION}\")
++if (ADM_SUBVERSION)
++        ADD_DEFINITIONS(-DADM_SUBVERSION=\"${ADM_SUBVERSION}\")
++endif (ADM_SUBVERSION)
++ADD_DEFINITIONS(-DADM_VERSION=\"${AVIDEMUX_VERSION}\")
+ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
+ INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/avidemux/ADM_UIs/ADM_QT4/include")
+ include_directories("${CMAKE_SOURCE_DIR}/../common/ADM_script2/include")
+diff --git a/avidemux/qt4/ADM_userInterfaces/ADM_dialog/Q_about.cpp b/avidemux/qt4/ADM_userInterfaces/ADM_dialog/Q_about.cpp
+index 142e531..b9cfa62 100644
+--- a/avidemux/qt4/ADM_userInterfaces/ADM_dialog/Q_about.cpp
++++ b/avidemux/qt4/ADM_userInterfaces/ADM_dialog/Q_about.cpp
+@@ -32,14 +32,9 @@ Ui_aboutWindow::Ui_aboutWindow(QWidget* parent) : QDialog(parent)
+ 
+ 	char subversion[128]={0};
+ #if defined(ADM_SUBVERSION)
+-        int l=strlen(ADM_SUBVERSION);
+-        if(l>1)
+-        {
+-                sprintf(subversion,"%s <br><small>(%s-fflibs %s)</small>", ADM_VERSION, ADM_SUBVERSION,ADM_FFMPEG_VERSION);
+-        }else
+-        {
+-                sprintf(subversion,"%s - Release",ADM_VERSION);
+-        }
++        sprintf(subversion,"%s <br><small>(%s-fflibs %s)</small>", ADM_VERSION, ADM_SUBVERSION, ADM_FFMPEG_VERSION);
++#else
++        sprintf(subversion,"%s - Release",ADM_VERSION);
+ #endif
+         QString  sv(subversion);
+         ui.versionLabel->setTextFormat(Qt::RichText);
+diff --git a/avidemux/qt4/CMakeLists.txt b/avidemux/qt4/CMakeLists.txt
+index 2b3b921..20390a7 100755
+--- a/avidemux/qt4/CMakeLists.txt
++++ b/avidemux/qt4/CMakeLists.txt
+@@ -133,7 +133,9 @@ ADD_SUBDIRECTORY(ADM_UIs ./ADM_UIsQt4)
+ ADD_SUBDIRECTORY(ADM_userInterfaces ./ADM_userInterfaces${QT_LIBRARY_EXTENSION})
+ 
+ SDLify(../common/main.cpp)
+-ADD_SOURCE_CFLAGS(../common/main.cpp "-DADM_SUBVERSION=\"${ADM_SUBVERSION}\"")
++if (ADM_SUBVERSION)
++        ADD_SOURCE_CFLAGS(../common/main.cpp "-DADM_SUBVERSION=\"${ADM_SUBVERSION}\"")
++endif (ADM_SUBVERSION)
+ ADD_SOURCE_CFLAGS(../common/main.cpp "-DADM_VERSION=\"${AVIDEMUX_VERSION}\"")
+ ADD_SOURCE_CFLAGS(../common/main.cpp "-DQT_FLAVOR=\"${QT_EXTENSION}\"")
+ 
+diff --git a/cmake/admCPackRpm.cmake b/cmake/admCPackRpm.cmake
+index 5b15af6..dce2ca9 100644
+--- a/cmake/admCPackRpm.cmake
++++ b/cmake/admCPackRpm.cmake
+@@ -11,7 +11,11 @@ SET(CPACK_RPM_PACKAGE_ARCHITECTURE "i386")
+ ENDIF (X86_64_SUPPORTED)
+ # Mandatory
+ SET(CPACK_RPM_PACKAGE_VERSION "${AVIDEMUX_VERSION}")
+-SET(CPACK_RPM_PACKAGE_RELEASE "1.r${ADM_SUBVERSION}.bootstrap")
++IF (ADM_SUBVERSION)
++        SET(CPACK_RPM_PACKAGE_RELEASE "1.r${ADM_SUBVERSION}.bootstrap")
++ELSE (ADM_SUBVERSION)
++        SET(CPACK_RPM_PACKAGE_RELEASE "1.bootstrap")
++ENDIF (ADM_SUBVERSION)
+ 
+ SET(CPACK_RPM_PACKAGE_LICENSE "GPLv2+")
+ SET(CPACK_RPM_PACKAGE_GROUP "Development/Libraries")
+diff --git a/cmake/admMainChecks.cmake b/cmake/admMainChecks.cmake
+index 984ac81..38edf01 100644
+--- a/cmake/admMainChecks.cmake
++++ b/cmake/admMainChecks.cmake
+@@ -147,7 +147,7 @@ MESSAGE("")
+ MESSAGE(STATUS "Checking for SCM")
+ MESSAGE(STATUS "****************")
+ IF(RELEASE OR AVIDEMUX_EXTERNAL_BUILD)
+-        SET( ADM_SUBVERSION 0)
++        UNSET( ADM_SUBVERSION )
+ ELSE()
+         admGetRevision( ${CMAKE_SOURCE_DIR} ADM_SUBVERSION)
+ ENDIF()
+commit a9bd97951955f6498cf7e7ac55f2984934b6c2c3
+Author: eumagga0x2a <eumagga0x2a@users.noreply.github.com>
+Date:   Fri Mar 31 08:40:30 2017 +0200
+
+    [cmake] Revert unsetting ADM_SUBVERSION
+    
+    Oops, setting ADM_SUBVERSION to 0 for releases was just as fine.
+    Reverting the unnecessary change made to admMainChecks.cmake.
+---
+ cmake/admMainChecks.cmake | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cmake/admMainChecks.cmake b/cmake/admMainChecks.cmake
+index 38edf01..984ac81 100644
+--- a/cmake/admMainChecks.cmake
++++ b/cmake/admMainChecks.cmake
+@@ -147,7 +147,7 @@ MESSAGE("")
+ MESSAGE(STATUS "Checking for SCM")
+ MESSAGE(STATUS "****************")
+ IF(RELEASE OR AVIDEMUX_EXTERNAL_BUILD)
+-        UNSET( ADM_SUBVERSION )
++        SET( ADM_SUBVERSION 0)
+ ELSE()
+         admGetRevision( ${CMAKE_SOURCE_DIR} ADM_SUBVERSION)
+ ENDIF()
+commit 53e50137ae03854fe94e902de4ba14a18c9a34a9
+Author: eumagga0x2a <eumagga0x2a@users.noreply.github.com>
+Date:   Sat Apr 1 14:42:01 2017 +0200
+
+    [build/cli] Fix the version string
+---
+ avidemux/cli/CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/avidemux/cli/CMakeLists.txt b/avidemux/cli/CMakeLists.txt
+index 4f62c85..da9202e 100644
+--- a/avidemux/cli/CMakeLists.txt
++++ b/avidemux/cli/CMakeLists.txt
+@@ -65,7 +65,7 @@ SDLify(../common/main.cpp)
+ if (ADM_SUBVERSION)
+         ADD_SOURCE_CFLAGS(../common/main.cpp "-DADM_SUBVERSION=\"${ADM_SUBVERSION}\"")
+ endif (ADM_SUBVERSION)
+-ADD_SOURCE_CFLAGS(../common/main.cpp "-DADM_VERSION='\"${AVIDEMUX_VERSION}\"'")
++ADD_SOURCE_CFLAGS(../common/main.cpp "-DADM_VERSION=\"${AVIDEMUX_VERSION}\"")
+ 
+ ###########################################
+ # Version Info

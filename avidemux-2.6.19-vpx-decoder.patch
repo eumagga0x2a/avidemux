@@ -1,0 +1,101 @@
+commit cf5932741795a7212149c85c3dc2e933147fa98d
+Author: eumagga0x2a <eumagga0x2a@users.noreply.github.com>
+Date:   Sun Apr 2 03:16:57 2017 +0200
+
+    [plugins/vpx] Fix swapped UV, menu name
+---
+ avidemux_plugins/ADM_videoDecoder/vpx/ADM_vpx.cpp   | 8 ++++----
+ avidemux_plugins/ADM_videoDecoder/vpx/vpxPlugin.cpp | 4 ++--
+ 2 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/avidemux_plugins/ADM_videoDecoder/vpx/ADM_vpx.cpp b/avidemux_plugins/ADM_videoDecoder/vpx/ADM_vpx.cpp
+index a686dae..cd57bf4 100644
+--- a/avidemux_plugins/ADM_videoDecoder/vpx/ADM_vpx.cpp
++++ b/avidemux_plugins/ADM_videoDecoder/vpx/ADM_vpx.cpp
+@@ -93,11 +93,11 @@ bool    decoderVPX::uncompress (ADMCompressedImage * in, ADMImage * out)
+             if(r)
+             {
+                     r->_planes[0]=img->planes[0];
+-                    r->_planes[1]=img->planes[1];
+-                    r->_planes[2]=img->planes[2];
++                    r->_planes[1]=img->planes[2];
++                    r->_planes[2]=img->planes[1];
+                     r->_planeStride[0]=img->stride[0];
+-                    r->_planeStride[1]=img->stride[1];
+-                    r->_planeStride[2]=img->stride[2];
++                    r->_planeStride[1]=img->stride[2];
++                    r->_planeStride[2]=img->stride[1];
+                     r->_colorspace=ADM_COLOR_YV12;
+                     r->Pts=in->demuxerPts;
+                     r->flags=in->flags;
+diff --git a/avidemux_plugins/ADM_videoDecoder/vpx/vpxPlugin.cpp b/avidemux_plugins/ADM_videoDecoder/vpx/vpxPlugin.cpp
+index c5e625d..f59ada7 100644
+--- a/avidemux_plugins/ADM_videoDecoder/vpx/vpxPlugin.cpp
++++ b/avidemux_plugins/ADM_videoDecoder/vpx/vpxPlugin.cpp
+@@ -17,9 +17,9 @@
+ static uint32_t fccs[]={MKFCC('V','P','8',' '),0};
+ ADM_DECLARE_VIDEO_DECODER_PREAMBLE(decoderVPX);
+ ADM_DECLARE_VIDEO_DECODER_MAIN("vpx",
+-                               "VP8/WebmM",
++                               "VP8/WebM",
+                                "Decoder using libvpx (c) mean 2010",
+                                 fccs, // No configuration
+                                 NULL,
+                                 1,0,0
+-);
+\ No newline at end of file
++);
+commit 630df97bbd875f810f7b103393bdfcaa7eb9a6e3
+Author: eumagga0x2a <eumagga0x2a@users.noreply.github.com>
+Date:   Sun Apr 2 23:28:18 2017 +0200
+
+    [plugins/vpx] Add VP9 decoding support
+---
+ avidemux_plugins/ADM_videoDecoder/vpx/ADM_vpx.cpp   | 16 ++++++++++++++--
+ avidemux_plugins/ADM_videoDecoder/vpx/vpxPlugin.cpp |  4 ++--
+ 2 files changed, 16 insertions(+), 4 deletions(-)
+
+diff --git a/avidemux_plugins/ADM_videoDecoder/vpx/ADM_vpx.cpp b/avidemux_plugins/ADM_videoDecoder/vpx/ADM_vpx.cpp
+index cd57bf4..8841b58 100644
+--- a/avidemux_plugins/ADM_videoDecoder/vpx/ADM_vpx.cpp
++++ b/avidemux_plugins/ADM_videoDecoder/vpx/ADM_vpx.cpp
+@@ -37,8 +37,20 @@ decoderVPX::decoderVPX (uint32_t w, uint32_t h,uint32_t fcc, uint32_t extraDataL
+     vpx_codec_dec_cfg_t cfg;
+     vpx_codec_flags_t flags=0; //VPX_CODEC_USE_POSTPROC
+     vpx_codec_ctx_t *instance=new vpx_codec_ctx_t;
+-    const struct vpx_codec_iface *iface = &vpx_codec_vp8_dx_algo;
+-    
++    const struct vpx_codec_iface *iface;
++    if(fcc==MKFCC('V','P','8',' '))
++    {
++        iface = &vpx_codec_vp8_dx_algo;
++    }else if(fcc==MKFCC('V','P','9',' '))
++    {
++        iface = &vpx_codec_vp9_dx_algo;
++    }else
++    {
++        ADM_warning("Unsupported FCC\n");
++        delete instance;
++        return;
++    }
++
+     memset(instance,0,sizeof(*instance));
+     memset(&cfg,0,sizeof(cfg));
+     cfg.threads=1;
+diff --git a/avidemux_plugins/ADM_videoDecoder/vpx/vpxPlugin.cpp b/avidemux_plugins/ADM_videoDecoder/vpx/vpxPlugin.cpp
+index f59ada7..df01971 100644
+--- a/avidemux_plugins/ADM_videoDecoder/vpx/vpxPlugin.cpp
++++ b/avidemux_plugins/ADM_videoDecoder/vpx/vpxPlugin.cpp
+@@ -14,10 +14,10 @@
+ #include "ADM_default.h"
+ #include "ADM_coreVideoDecoderInternal.h"
+ #include "ADM_vpx.h"
+-static uint32_t fccs[]={MKFCC('V','P','8',' '),0};
++static uint32_t fccs[]={MKFCC('V','P','8',' '),MKFCC('V','P','9',' '),0};
+ ADM_DECLARE_VIDEO_DECODER_PREAMBLE(decoderVPX);
+ ADM_DECLARE_VIDEO_DECODER_MAIN("vpx",
+-                               "VP8/WebM",
++                               "VP8/VP9/WebM",
+                                "Decoder using libvpx (c) mean 2010",
+                                 fccs, // No configuration
+                                 NULL,
